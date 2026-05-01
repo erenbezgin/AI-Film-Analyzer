@@ -1,0 +1,5 @@
+flask
+flask-mysql
+google-generativeai
+requests
+python-dotenv
