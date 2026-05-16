@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Giriş - AI Film Analyzer{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+  <h2>Giriş Yap</h2>
+  <form method="POST" action="/login">
+    <div>
+      <input type="text" name="username" class="form-control" placeholder="Kullanıcı Adı" required>
+    </div>
+    <div>
+      <input type="password" name="password" class="form-control" placeholder="Şifre" required>
+    </div>
+    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 24px; padding: 16px;">Oturum Aç</button>
+  </form>
+  
+  <div style="margin-top: 30px; color: var(--text-secondary); display: flex; align-items: center; justify-content: space-between;">
+    <span>AI Film Analyzer'a yeni misiniz?</span>
+    <a href="/register" style="color: #fff; font-weight: 500; text-decoration: none;">Şimdi Kaydolun.</a>
+  </div>
+</div>
+{% endblock %}

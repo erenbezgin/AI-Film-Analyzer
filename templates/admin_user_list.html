@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}{{ target_user.username }} - İzleme Listesi{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center;">
+  <div>
+    <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 8px;">
+      👁️ {{ target_user.username }} kullanıcısının Listesi
+    </h1>
+    <p style="color: var(--text-secondary);">
+      {{ target_user.email }}
+    </p>
+  </div>
+  <a href="/admin" class="btn btn-secondary">← Geri Dön</a>
+</div>
+
+{% if movies %}
+<div class="movie-grid">
+  {% for movie in movies %}
+  <div class="movie-card">
+    <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" alt="{{ movie.title }}" class="movie-poster" />
+    <div class="movie-info">
+      <h3 class="movie-title">{{ movie.title }}</h3>
+      <div class="movie-rating">⭐ {{ movie.vote_average|round(1) }}</div>
+      <p class="movie-overview" style="font-size: 0.8rem; margin-top: 10px; color: #ccc;">
+        {% if movie.overview|length > 100 %}
+          {{ movie.overview[:100] }}...
+        {% else %}
+          {{ movie.overview }}
+        {% endif %}
+      </p>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">
+  Bu kullanıcının izleme listesi henüz boş.
+</div>
+{% endif %}
+
+{% endblock %}

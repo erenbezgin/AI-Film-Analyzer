@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Film Ara - AI Film Analyzer{% endblock %}
+
+{% block content %}
+<div style="padding: 0 4%; margin-top: 40px;">
+  <h2 style="font-size: 2rem; margin-bottom: 20px;">Filmleri Keşfet</h2>
+  
+  <div class="auth-container" style="max-width: 800px; margin: 0 0 40px 0; padding: 30px;">
+    <form method="GET" action="/search" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: end;">
+      <div>
+        <label class="form-label">Film Adı</label>
+        <input type="text" name="q" class="form-control" value="{{ query }}" placeholder="Film ara..." style="margin-bottom:0;">
+      </div>
+      <div>
+        <label class="form-label">Min Puan</label>
+        <select name="rating" class="form-control" style="margin-bottom:0;">
+          <option value="">Tümü</option>
+          <option value="7">7.0+</option>
+          <option value="8">8.0+</option>
+          <option value="9">9.0+</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Yıl</label>
+        <input type="number" name="year" class="form-control" placeholder="Yıl" style="margin-bottom:0;">
+      </div>
+      <div>
+        <button type="submit" class="btn btn-primary" style="height: 54px; padding: 0 30px;">Ara</button>
+      </div>
+    </form>
+  </div>
+
+  {% if results %}
+  <h3 style="margin-bottom: 20px; color: var(--text-secondary);">{{ results|length }} Film Bulundu</h3>
+  <div class="films-grid-wrap" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; padding-bottom: 50px;">
+    {% for movie in results %}
+    <div class="film-card">
+      <div class="film-poster">
+        {% if movie.poster_path %}
+        <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" alt="{{ movie.title }}" />
+        {% else %}
+        <div style="width:100%; height:100%; background:#222; display:flex; align-items:center; justify-content:center;">🎬</div>
+        {% endif %}
+        <div class="film-overlay">
+          <div class="film-overlay-buttons">
+            <form method="POST" action="/add-to-watchlist/{{ movie.id }}">
+              <button type="submit" class="btn btn-primary btn-small" style="width:100%; padding:8px;">➕ Listeye Ekle</button>
+            </form>
+            <button class="btn btn-ai btn-small btn-analysis" data-movie-id="{{ movie.id }}" data-movie-title="{{ movie.title }}" style="width:100%; padding:8px;">🤖 Analiz</button>
+          </div>
+        </div>
+      </div>
+      <div class="film-info">
+        <div class="film-title">{{ movie.title }}</div>
+        <div class="film-meta">
+          <span class="film-rating">{{ movie.vote_average|round(1) }} Puan</span>
+          {% if movie.release_date %}
+          <span>{{ movie.release_date.year if movie.release_date else '' }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    ℹ️ {% if query or genre %}Arama sonucu bulunamadı. Lütfen diğer kriterler deneyin.{% else %}Film aramak için başlayın.{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

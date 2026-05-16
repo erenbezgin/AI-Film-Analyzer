@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}{{ movie.title }} - AI Film Analyzer{% endblock %}
+
+{% block content %}
+<div style="position: relative; margin-top: -20px;">
+  <!-- Büyük Arkaplan -->
+  <div style="height: 60vh; min-height: 400px; background-image: url('https://image.tmdb.org/t/p/original{{ movie.backdrop_path or movie.poster_path }}'); background-size: cover; background-position: center; position: relative;">
+    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to right, rgba(20,20,20,1) 0%, rgba(20,20,20,0.8) 40%, rgba(20,20,20,0) 100%), linear-gradient(to top, rgba(20,20,20,1) 0%, rgba(20,20,20,0) 20%);"></div>
+    
+    <div style="position: absolute; top: 15%; left: 4%; max-width: 70%; display: flex; gap: 30px; align-items: center; z-index: 2;">
+      <!-- Poster -->
+      {% if movie.poster_path %}
+      <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" style="width: 200px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.8);" />
+      {% endif %}
+      
+      <!-- Detaylar -->
+      <div>
+        <h1 style="font-size: 3rem; margin-bottom: 10px; font-weight: 800; line-height: 1.1; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">{{ movie.title }}</h1>
+        <div style="display: flex; gap: 15px; margin-bottom: 15px; color: #a3a3a3; font-weight: 500; align-items: center;">
+          <span style="color: #4ade80;">%98 Eşleşme</span>
+          {% if movie.release_date %}
+          <span>{{ movie.release_date.year }}</span>
+          {% endif %}
+          <span style="border: 1px solid #555; padding: 2px 6px; border-radius: 3px; font-size: 0.8rem;">18+</span>
+          <span>IMDb: ⭐ {{ movie.vote_average|round(1) }}</span>
+          {% if movie.site_rating %}
+          <span style="color: var(--color-primary);">Site Puanı: ⭐ {{ movie.site_rating }}</span>
+          {% endif %}
+        </div>
+        
+        <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 20px; max-width: 800px; color: #fff; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">
+          {{ movie.overview }}
+        </p>
+        
+        {% if movie.genre_list %}
+        <div style="margin-bottom: 20px;">
+          <span style="color: #777;">Türler:</span>
+          {% for genre in movie.genre_list %}
+          <a href="/genre/{{ genre }}" style="color: #fff; text-decoration: none; margin-right: 10px;">{{ genre }}</a>
+          {% endfor %}
+        </div>
+        {% endif %}
+        
+        <div style="display: flex; gap: 15px;">
+          <form method="POST" action="/add-to-watchlist/{{ movie.id }}">
+            <button type="submit" class="btn btn-primary" style="padding: 12px 24px; font-size: 1.1rem;">➕ Listeme Ekle</button>
+          </form>
+          <button class="btn btn-ai btn-analysis" data-movie-id="{{ movie.id }}" data-movie-title="{{ movie.title }}" style="padding: 12px 24px; font-size: 1.1rem;">🤖 AI Analizi İste</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="padding: 0 4%; margin-top: 40px;">
+  <h3 style="font-size: 1.5rem; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #333;"><i class="fas fa-users text-primary"></i> Oyuncu Kadrosu</h3>
+  {% if cast %}
+  <div style="display: flex; gap: 15px; overflow-x: auto; padding-bottom: 15px; scroll-behavior: smooth;">
+    {% for actor in cast %}
+    <a href="{{ url_for('main.actor_detail', actor_id=actor.id) }}" class="actor-card glass-card" style="text-decoration: none; color: inherit; min-width: 140px; max-width: 140px; display: flex; flex-direction: column; align-items: center; padding: 10px; border-radius: 12px; transition: all 0.3s ease;">
+      {% if actor.profile_path %}
+        <img src="https://image.tmdb.org/t/p/w185{{ actor.profile_path }}" style="width: 100%; height: 160px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+      {% else %}
+        <div style="width: 100%; height: 160px; background: #222; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; color: #555;">Resim Yok</div>
+      {% endif %}
+      <div style="font-weight: 600; font-size: 0.9rem; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff;">{{ actor.name }}</div>
+      <div style="font-size: 0.8rem; color: #a3a3a3; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ actor.character_name }}</div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p style="color: #888;">Bu film için oyuncu bilgisi bulunmamaktadır.</p>
+  {% endif %}
+</div>
+
+<div style="padding: 0 4%; margin-top: 40px; display: grid; grid-template-columns: 2fr 1fr; gap: 40px;">
+  
+  <!-- Yorumlar Bölümü -->
+  <div>
+    <h3 style="font-size: 1.5rem; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #333;">Kullanıcı İncelemeleri</h3>
+    
+    {% if reviews %}
+      {% for review in reviews %}
+      <div style="background: #181818; padding: 20px; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid var(--color-primary);">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+          <strong style="color: #fff;">{{ review.username }}</strong>
+          <div style="display: flex; gap: 15px; color: #888; font-size: 0.9rem;">
+            <span style="color: #eab308; font-weight: bold;">⭐ {{ review.rating }}/10</span>
+            <span>{{ review.created_at.strftime('%d.%m.%Y') }}</span>
+          </div>
+        </div>
+        <p style="color: #ccc; margin: 0; line-height: 1.5;">{{ review.comment }}</p>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="color: #888;">Henüz kimse yorum yapmamış. İlk yorum yapan siz olun!</p>
+    {% endif %}
+  </div>
+  
+  <!-- Yorum Yapma Formu -->
+  <div>
+    <div style="background: #181818; padding: 25px; border-radius: 8px; position: sticky; top: 100px;">
+      <h3 style="font-size: 1.2rem; margin-bottom: 15px;">Filmi Değerlendir</h3>
+      <form method="POST" action="/movie/{{ movie.id }}">
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 8px; color: #aaa;">Puanınız (1-10)</label>
+          <select name="rating" class="form-control" required style="width: 100%; background: #333; border: none; color: #fff; padding: 10px; border-radius: 4px;">
+            <option value="">Puan Seçin</option>
+            {% for i in range(10, 0, -1) %}
+            <option value="{{ i }}">{{ i }} - {{ 'Şaheser' if i==10 else 'Çok İyi' if i>=8 else 'Ortalama' if i>=5 else 'Kötü' }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 8px; color: #aaa;">Yorumunuz</label>
+          <textarea name="comment" class="form-control" rows="4" placeholder="Film hakkında ne düşünüyorsunuz?" required style="width: 100%; background: #333; border: none; color: #fff; padding: 10px; border-radius: 4px; resize: vertical;"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Gönder</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

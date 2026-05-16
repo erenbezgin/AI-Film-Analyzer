@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Profilim - AI Film Analyzer{% endblock %}
+
+{% block content %}
+<div style="padding: 0 4%; margin-top: 40px;">
+  <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 40px;">
+    <div style="width: 80px; height: 80px; background-color: var(--color-primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: bold; color: #fff;">
+      {{ username[0]|upper }}
+    </div>
+    <div>
+      <h2 style="font-size: 2rem; margin: 0;">{{ username }}</h2>
+      <p style="color: var(--text-secondary); margin: 5px 0 0 0;">Kişisel İzleme Listeniz</p>
+    </div>
+  </div>
+
+  <h3 style="font-size: 1.5rem; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px;">İzleme Listem ({{ watch_list|length }})</h3>
+
+  {% if watch_list %}
+  <div class="films-grid-wrap" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; padding-bottom: 50px;">
+    {% for movie in watch_list %}
+    <div class="film-card">
+      <div class="film-poster">
+        {% if movie.poster_path %}
+        <a href="/movie/{{ movie.id }}">
+          <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" alt="{{ movie.title }}" />
+        </a>
+        {% else %}
+        <a href="/movie/{{ movie.id }}" style="text-decoration:none;">
+          <div style="width:100%; height:100%; background:#222; display:flex; align-items:center; justify-content:center; font-size:3rem;">🎬</div>
+        </a>
+        {% endif %}
+        <div class="film-overlay">
+          <div class="film-overlay-buttons">
+            <a href="/movie/{{ movie.id }}" class="btn btn-secondary btn-small" style="width:100%; padding:8px; display:block; text-align:center;">ℹ️ Detaylar</a>
+            <button class="btn btn-ai btn-small btn-analysis" data-movie-id="{{ movie.id }}" data-movie-title="{{ movie.title }}" style="width:100%; padding:8px; margin-top:5px;">🤖 Analiz</button>
+          </div>
+        </div>
+      </div>
+      <div class="film-info">
+        <div class="film-title">{{ movie.title }}</div>
+        <div class="film-meta">
+          <span class="film-rating">{{ movie.vote_average|round(1) }} Puan</span>
+          {% if movie.release_date %}
+          <span>{{ movie.release_date.year if movie.release_date else '' }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    Listeniz henüz boş. <a href="/search" style="color: #fff; text-decoration: underline;">Keşfetmeye başla!</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

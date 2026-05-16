@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}🎬 AI Film Analyzer{% endblock %}</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- NAVBAR (Pure Netflix Style) -->
+    <nav class="navbar" style="background-color: #141414; position: sticky; top: 0; z-index: 1000; padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,0.05); box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+        <div style="max-width: 1400px; margin: 0 auto; width: 100%; padding: 0 4%; display: flex; justify-content: space-between; align-items: center;">
+            <a class="navbar-brand" href="/" style="display: flex; align-items: center; text-decoration: none; position: relative;">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="AI Analyzer Logo" style="height: 70px; width: auto; object-fit: contain; mix-blend-mode: lighten; transition: all 0.3s ease; margin-top: -5px; margin-bottom: -5px; position: relative; z-index: 10;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+            </a>
+            <div style="display: flex; gap: 25px; align-items: center;">
+                {% if session.user_id %}
+                    <a class="nav-link" href="/dashboard" style="color: #fff; text-decoration: none; font-weight: 500; font-size: 1.05rem; transition: color 0.3s;">Anasayfa</a>
+                    <div style="position: relative; display: inline-block; cursor: pointer;" class="dropdown-hover">
+                        <span class="nav-link" style="color: #fff; font-weight: 500; font-size: 1.05rem; transition: color 0.3s;">Kategoriler ▼</span>
+                        <div class="dropdown-content" style="display: none; position: absolute; background-color: #000; min-width: 180px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.9); z-index: 1; border-radius: 4px; top: 30px; left: 0; border: 1px solid rgba(255,255,255,0.1); overflow: hidden;">
+                            {% if nav_genres %}
+                                {% for genre in nav_genres %}
+                                    <a href="{{ url_for('main.genre_page_by_id', genre_id=genre.id) }}" style="color: #e5e5e5; padding: 12px 20px; text-decoration: none; display: block; font-size: 0.95rem; transition: background 0.2s, color 0.2s;">{{ genre.genre_name }}</a>
+                                {% endfor %}
+                            {% else %}
+                                <a href="/genre/Bilim-Kurgu" style="color: #e5e5e5; padding: 12px 20px; text-decoration: none; display: block; font-size: 0.95rem; transition: background 0.2s, color 0.2s;">Bilim Kurgu</a>
+                                <a href="/genre/Aksiyon" style="color: #e5e5e5; padding: 12px 20px; text-decoration: none; display: block; font-size: 0.95rem; transition: background 0.2s, color 0.2s;">Aksiyon</a>
+                                <a href="/genre/Komedi" style="color: #e5e5e5; padding: 12px 20px; text-decoration: none; display: block; font-size: 0.95rem; transition: background 0.2s, color 0.2s;">Komedi</a>
+                                <a href="/genre/Dram" style="color: #e5e5e5; padding: 12px 20px; text-decoration: none; display: block; font-size: 0.95rem; transition: background 0.2s, color 0.2s;">Dram</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <style>
+                        .dropdown-hover:hover .dropdown-content { display: block !important; }
+                        .dropdown-content a:hover { background-color: #E50914; color: #fff !important; }
+                        .nav-link:hover { color: #E50914 !important; }
+                    </style>
+                    <a class="nav-link" href="/search" style="color: #fff; text-decoration: none; font-weight: 500; font-size: 1.05rem; transition: color 0.3s;">Keşfet (Ara)</a>
+                    <a class="nav-link" href="/actors" style="color: #fff; text-decoration: none; font-weight: 500; font-size: 1.05rem; transition: color 0.3s;">Oyuncular</a>
+                    <a class="nav-link" href="/chat" style="color: #fff; text-decoration: none; font-weight: 500; font-size: 1.05rem; transition: color 0.3s;">AI Asistan</a>
+                    <a class="nav-link" href="/profile" style="color: #fff; text-decoration: none; font-weight: 500; font-size: 1.05rem; transition: color 0.3s;">Profilim</a>
+                    {% if session.get('is_admin') %}
+                        <a class="nav-link" href="/admin" style="color: #eab308; text-decoration: none; font-weight: 600; font-size: 1.05rem; transition: color 0.3s;">Admin Paneli</a>
+                    {% endif %}
+                    <a class="nav-link" href="/logout" style="color: #fff; text-decoration: none; font-weight: 500; font-size: 1.05rem; transition: color 0.3s; margin-left: 10px; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 20px;">Çıkış</a>
+                {% else %}
+                    <a class="nav-link" href="/login">🔐 Giriş</a>
+                    <a class="nav-link" href="/register">📝 Kayıt</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- FLASH MESSAGES -->
+    <div class="container-main" style="padding-top: 20px; padding-bottom: 0;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
+                        {{ message }}
+                        <button onclick="this.parentElement.style.display='none'" style="background: none; border: none; color: inherit; cursor: pointer;">×</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="container-main">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-content">
+            <span class="footer-brand">🎬 AI Film Analyzer</span>
+            <span class="developer-credit">|</span>
+            <span class="developer-credit">Developed by <strong>Eren Bezgin</strong> & Team</span>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel - AI Film Analyzer{% endblock %}
+{% block content %}
+<section class="admin-premium-wrap">
+  <button id="admin-drawer-toggle" class="admin-drawer-toggle">⚡ Hizli Aksiyon</button>
+  <aside id="admin-quick-drawer" class="admin-quick-drawer">
+    <div class="admin-drawer-head">
+      <h3>Hizli Aksiyon Drawer</h3>
+      <button id="admin-drawer-close" class="admin-drawer-close">✕</button>
+    </div>
+
+    <div class="admin-drawer-section">
+      <h4>🎬 Son Eklenen Filmler</h4>
+      {% if recent_added_movies %}
+        {% for movie in recent_added_movies %}
+        <div class="admin-drawer-item">
+          <span>{{ movie.title }}</span>
+          <small>⭐ {{ movie.vote_average|round(1) }}</small>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p class="admin-drawer-empty">Film verisi yok.</p>
+      {% endif %}
+    </div>
+
+    <div class="admin-drawer-section">
+      <h4>🤖 Bekleyen AI Analizi</h4>
+      <div class="admin-kpi">{{ pending_analysis_count }}</div>
+      <form method="POST" action="/admin/analyze">
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Analizi Tetikle</button>
+      </form>
+    </div>
+
+    <div class="admin-drawer-section">
+      <h4>🚨 Sorunlu Yorumlar</h4>
+      {% if problematic_reviews %}
+        {% for review in problematic_reviews %}
+        <div class="admin-drawer-item">
+          <span>{{ review.username }} • {{ review.movie_title }}</span>
+          <small>{{ review.rating }}/10</small>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p class="admin-drawer-empty">Sorunlu yorum bulunmuyor.</p>
+      {% endif %}
+    </div>
+  </aside>
+
+  <div class="admin-premium-hero">
+    <div>
+      <p class="admin-hero-badge">CONTROL CENTER</p>
+      <h1>Admin Komuta Merkezi</h1>
+      <p>
+        Kullanici, film ve yorum akisini tek ekrandan hizli yonet. Arama, filtre ve tek tik moderasyonla operasyonu kolaylastir.
+      </p>
+    </div>
+    <div class="admin-hero-actions">
+      <a href="/chat" class="btn btn-secondary">AI Asistani Test Et</a>
+      <a href="/dashboard" class="btn btn-primary">Kullanici Ekranina Git</a>
+    </div>
+  </div>
+
+<!-- İSTATİSTİK KARTLARI -->
+<div class="admin-stat-grid">
+  <div class="stat-card admin-stat-card">
+    <div class="stat-value">{{ users_count }}</div>
+    <div class="stat-label">👥 Kayıtlı Kullanıcı</div>
+  </div>
+
+  <div class="stat-card admin-stat-card">
+    <div class="stat-value">{{ movies_count }}</div>
+    <div class="stat-label">🎬 Toplam Film</div>
+  </div>
+
+  <div class="stat-card admin-stat-card">
+    <div class="stat-value">{{ reviews_count }}</div>
+    <div class="stat-label">💬 Toplam İnceleme</div>
+  </div>
+</div>
+
+<!-- GEMİNİ ANALİZ ARACI -->
+<div class="card admin-panel-card">
+  <h3 style="font-weight: 700; margin-bottom: 24px; color: var(--text-primary)">
+    🚀 Gemini 2.5 Film Analiz Motoru
+  </h3>
+
+  <!-- AI Quota Status -->
+  <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+    {% set ai_status = ai_quota_status %}
+    <div style="width:12px; height:12px; border-radius:50%; background: {% if ai_status.level == 'green' %}#10b981{% elif ai_status.level == 'yellow' %}#f59e0b{% else %}#ef4444{% endif %}; box-shadow: 0 0 8px rgba(0,0,0,0.4);"></div>
+    <div style="font-size:0.95rem; color:var(--text-secondary);">
+      <strong style="color: var(--text-primary);">AI Kota Durumu:</strong>
+      <span style="margin-left:6px; font-weight:600;">{{ ai_status.label }}</span>
+      <small style="display:block; color:var(--text-muted);">{{ ai_status.detail }}</small>
+    </div>
+  </div>
+
+  <form
+    method="POST"
+    action="/admin/analyze"
+    style="display: flex; gap: 12px; align-items: flex-end"
+  >
+    <div style="flex: 1">
+      <label class="form-label">AI Is Yuku</label>
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Analiz edilmemis filmler otomatik secilir"
+        disabled
+      />
+    </div>
+    <button type="submit" class="btn btn-admin" style="padding: 12px 24px">
+      ▶ Analiz Başlat
+    </button>
+  </form>
+
+  <div class="alert alert-info" style="margin-top: 16px">
+    <strong>📋 Proses:</strong> Gemini 2.5 Flash, analiz edilmemiş filmleri
+    otomatik seçerek profesyonel teknik analiz üretir.
+  </div>
+</div>
+
+<!-- KULLANICI LİSTESİ -->
+<div class="card admin-panel-card">
+  <div class="admin-table-header">
+    <h3 style="font-weight: 700; margin: 0; color: var(--text-primary)">
+    👥 Kayıtlı Kullanıcılar
+  </h3>
+    <input id="admin-user-search" class="form-control admin-mini-input" type="text" placeholder="Kullanici ara..." />
+  </div>
+
+  {% if users %}
+  <div style="overflow-x: auto">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Kullanıcı Adı</th>
+          <th>E-mail</th>
+          <th>Rol</th>
+          <th>İşlemler</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr class="admin-user-row" data-search="{{ user.username|lower }} {{ user.email|lower }}">
+          <td>#{{ user.id }}</td>
+          <td style="font-weight: 600">{{ user.username }}</td>
+          <td style="color: var(--text-secondary)">{{ user.email }}</td>
+          <td>
+            {% if user.is_admin %}
+            <span class="genre-badge" style="background: rgba(251, 191, 36, 0.2); color: var(--color-accent);">👑 Admin</span>
+            {% else %}
+            <span class="genre-badge">👤 Kullanıcı</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="/admin/user_list/{{ user.id }}" class="btn btn-secondary btn-small" style="font-size: 0.8rem; padding: 4px 8px; margin-right: 5px; background-color: rgba(56, 189, 248, 0.2); border-color: rgba(56, 189, 248, 0.3); color: #38bdf8;">👁️ Listeyi Gör</a>
+            {% if not user.is_admin %}
+            <a href="/admin/make_admin/{{ user.id }}" class="btn btn-secondary btn-small" style="font-size: 0.8rem; padding: 4px 8px; margin-right: 5px;">Yetki Ver</a>
+            {% endif %}
+            {% if user.id != session.user_id %}
+            <a href="/admin/delete_user/{{ user.id }}" class="btn btn-primary btn-small" style="background-color: #dc2626; border-color: #dc2626; font-size: 0.8rem; padding: 4px 8px;" onclick="return confirm('Bu kullanıcıyı silmek istediğinize emin misiniz? Tüm incelemeleri de silinecektir!');">Sil</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-warning">⚠️ Kullanıcı bulunamadı.</div>
+  {% endif %}
+</div>
+
+<!-- FILM YÖNETİMİ (EKLE / SİL) -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 40px;">
+  <!-- Film Ekle -->
+  <div class="card admin-panel-card admin-panel-card-green">
+    <h3 style="font-weight: 700; margin-bottom: 16px; color: #10b981;">
+      ➕ Film Ekle (TMDB)
+    </h3>
+    <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">
+      TMDB film ID'sini girerek veritabanına anında yeni film çekin.
+    </p>
+    <form action="/admin/add_movie" method="POST" style="display: flex; gap: 10px;">
+      <input type="number" name="tmdb_id" placeholder="Örn: 603 (The Matrix)" required class="form-control" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white;">
+      <button type="submit" class="btn btn-primary" style="background-color: #10b981; border-color: #10b981;">Filmi Çek</button>
+    </form>
+  </div>
+
+  <!-- Film Sil -->
+  <div class="card admin-panel-card admin-panel-card-red">
+    <h3 style="font-weight: 700; margin-bottom: 16px; color: #ef4444;">
+      🗑️ Film Sil
+    </h3>
+    <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">
+      Site içi Film ID'sini girerek filmi ve tüm yorumlarını tamamen silin.
+    </p>
+    <form action="/admin/delete_movie" method="POST" style="display: flex; gap: 10px;" onsubmit="return confirm('Bu filmi tamamen silmek istediğinize emin misiniz? Geri dönüşü yoktur!');">
+      <input type="number" name="movie_id" placeholder="Örn: 124 (Site Film ID)" required class="form-control" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white;">
+      <button type="submit" class="btn btn-primary" style="background-color: #ef4444; border-color: #ef4444;">Filmi Sil</button>
+    </form>
+  </div>
+</div>
+
+<!-- YORUM MODERASYONU -->
+<div class="card admin-panel-card" style="margin-top: 40px;">
+  <div class="admin-table-header">
+    <h3 style="font-weight: 700; margin: 0; color: var(--text-primary)">
+    💬 Son İncelemeler
+  </h3>
+    <select id="admin-review-rating-filter" class="form-control admin-mini-input">
+      <option value="">Tum puanlar</option>
+      <option value="9">9 ve ustu</option>
+      <option value="7">7 ve ustu</option>
+      <option value="5">5 ve ustu</option>
+    </select>
+  </div>
+
+  {% if recent_reviews %}
+  <div style="overflow-x: auto">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Kullanıcı</th>
+          <th>Film</th>
+          <th>Puan</th>
+          <th>Yorum</th>
+          <th>İşlem</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for review in recent_reviews %}
+        <tr class="admin-review-row" data-rating="{{ review.rating }}">
+          <td style="font-weight: 600">{{ review.username }}</td>
+          <td>{{ review.movie_title }}</td>
+          <td style="color: #eab308; font-weight: bold;">⭐ {{ review.rating }}/10</td>
+          <td style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ review.comment }}">
+            {{ review.comment }}
+          </td>
+          <td>
+            <a href="/admin/delete_review/{{ review.id }}" class="btn btn-primary btn-small" style="background-color: #dc2626; border-color: #dc2626; font-size: 0.8rem; padding: 4px 8px;" onclick="return confirm('Yorumu silmek istediğinize emin misiniz?');">Sil</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-info">Henüz platformda yapılmış bir inceleme yok.</div>
+  {% endif %}
+</div>
+
+</section>
+{% endblock %}

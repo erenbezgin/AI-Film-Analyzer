@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Oyuncular - AI Film Analyzer{% endblock %}
+
+{% block content %}
+<div style="padding: 0 4%; margin-top: 40px;">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px;">
+    <h2 style="font-size: 2rem; color: var(--color-accent); text-shadow: 0 0 15px rgba(0, 225, 255, 0.3);">
+      <i class="fas fa-users text-primary"></i> Popüler Oyuncular
+    </h2>
+  </div>
+  
+  {% if actors %}
+  <div class="films-grid-wrap" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 25px; padding-bottom: 50px;">
+    {% for actor in actors %}
+    <a href="{{ url_for('main.actor_detail', actor_id=actor.id) }}" class="actor-card glass-card" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center; padding: 15px; border-radius: 16px; transition: all 0.4s ease; text-align: center;">
+      <div style="width: 140px; height: 140px; border-radius: 50%; overflow: hidden; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.1);">
+        {% if actor.profile_path %}
+          <img src="https://image.tmdb.org/t/p/w300{{ actor.profile_path }}" alt="{{ actor.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+        {% else %}
+          <div style="width: 100%; height: 100%; background: #222; display: flex; align-items: center; justify-content: center; color: #555; font-size: 0.9rem;">Resim Yok</div>
+        {% endif %}
+      </div>
+      <div style="font-weight: 700; font-size: 1.1rem; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff;">{{ actor.name }}</div>
+      <div style="font-size: 0.85rem; color: var(--color-accent); margin-top: 5px;">
+        <i class="fas fa-film"></i> {{ actor.movie_count }} Film
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info glass-panel">
+    ℹ️ Sistemde henüz oyuncu bulunmuyor. Admin panelinden film eklendikçe oyuncular da otomatik olarak çekilecektir.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

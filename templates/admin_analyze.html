@@ -1,0 +1,122 @@
+{% extends "base.html" %} {% block title %}Admin Panel - AI Film Analyzer{%
+endblock %} {% block content %}
+<div style="margin-bottom: 40px">
+  <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 8px">
+    🛠️ Admin Kontrol Paneli
+  </h1>
+  <p style="color: var(--text-secondary)">
+    Sistem yönetimi ve AI analiz araçları
+  </p>
+</div>
+
+<!-- İSTATİSTİK KARTLARI -->
+<div
+  style="
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+  "
+>
+  <div class="stat-card">
+    <div class="stat-value">{{ users_count }}</div>
+    <div class="stat-label">👥 Kayıtlı Kullanıcı</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-value">1452</div>
+    <div class="stat-label">🎬 Toplam Film</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-value">∞</div>
+    <div class="stat-label">🤖 AI Analizler</div>
+  </div>
+</div>
+
+<!-- GEMİNİ ANALİZ ARACI -->
+<div
+  class="card"
+  style="
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    margin-bottom: 40px;
+    padding: 24px;
+  "
+>
+  <h3 style="font-weight: 700; margin-bottom: 24px; color: var(--text-primary)">
+    🚀 Gemini 2.5 Film Analiz Motoru
+  </h3>
+
+  <form
+    method="POST"
+    action="/admin/analyze"
+    style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap"
+  >
+    <div style="flex: 1; min-width: 200px">
+      <button
+        type="submit"
+        class="btn btn-admin"
+        style="padding: 12px 24px; width: 100%"
+      >
+        ▶ Analiz Başlat
+      </button>
+    </div>
+  </form>
+
+  <div class="alert alert-info" style="margin-top: 16px">
+    <strong>📋 Proses:</strong> Gemini 2.5 Flash, analiz edilmemiş filmleri
+    otomatik seçerek profesyonel teknik analiz üretir.
+  </div>
+</div>
+
+<!-- KULLANICI LİSTESİ -->
+<div
+  class="card"
+  style="border: 1px solid rgba(56, 189, 248, 0.2); padding: 24px"
+>
+  <h3 style="font-weight: 700; margin-bottom: 24px; color: var(--text-primary)">
+    👥 Kayıtlı Kullanıcılar
+  </h3>
+
+  {% if users %}
+  <div style="overflow-x: auto">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Kullanıcı Adı</th>
+          <th>E-mail</th>
+          <th>Rol</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td>#{{ user.id }}</td>
+          <td style="font-weight: 600">{{ user.username }}</td>
+          <td style="color: var(--text-secondary)">{{ user.email }}</td>
+          <td>
+            {% if user.is_admin %}
+            <span
+              class="genre-badge"
+              style="
+                background: rgba(251, 191, 36, 0.2);
+                color: var(--color-accent);
+              "
+              >👑 Admin</span
+            >
+            {% else %}
+            <span class="genre-badge">👤 Kullanıcı</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-warning">⚠️ Kullanıcı bulunamadı.</div>
+  {% endif %}
+</div>
+
+{% endblock %}

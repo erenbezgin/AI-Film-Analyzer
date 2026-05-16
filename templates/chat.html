@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}AI Asistan - AI Film Analyzer{% endblock %}
+
+{% block content %}
+<section class="ai-studio-page">
+  <div class="ai-studio-hero">
+    <p class="ai-studio-badge">YENI NESIL FILM DANISMANI</p>
+    <h1>AI Film Asistani</h1>
+    <p>
+      Ruh haline, tur tercihlerine ve izleme amacina gore detayli film onerileri al.
+      Sahne dili, tema, tempo ve benzer yapim analizi de isteyebilirsin.
+    </p>
+  </div>
+
+  <div class="ai-studio-layout">
+    <aside class="ai-studio-sidebar">
+      <h3>Akilli Promptlar</h3>
+      <button class="prompt-chip" data-prompt="Bu aksam rahatlatan, yormayan ve keyifli 5 film oner. Her biri icin kisaca nedenini yaz.">Rahat Aksam</button>
+      <button class="prompt-chip" data-prompt="Bilim kurgu seven biri icin mind-bending 7 film oner. Konu karmasiklik seviyesini de belirt.">Zihin Buken Bilim Kurgu</button>
+      <button class="prompt-chip" data-prompt="Ailemle izleyebilecegim, siddet seviyesi dusuk 6 film oner. Yas uygunlugunu da ekle.">Aile Modu</button>
+      <button class="prompt-chip" data-prompt="Klasiklerden baslayarak modern doneme uzanan bir film maratonu listesi cikar.">Film Maratonu</button>
+      <button class="prompt-chip" data-prompt="Son 10 yilin en iyi dram filmlerinden 8 tanesini, duygusal etki ve oyunculuk acisindan degerlendir.">Dram Analizi</button>
+      <button class="prompt-chip" data-prompt="Bir yonetmenin filmografisine giris icin izleme sirasi hazirla. Ornek olarak Christopher Nolan sec.">Yonetmen Odakli</button>
+    </aside>
+
+    <div class="ai-studio-chat">
+      <div id="ai-conversation" class="ai-conversation">
+        <div class="message ai">
+          Merhaba {{ username }}. Izlemek istedigin tarzı yaz; sana detayli secenekler hazirlayayim.
+        </div>
+        {% if response %}
+        <div class="message ai">{{ response }}</div>
+        {% endif %}
+      </div>
+
+      <form id="ai-studio-form" method="POST" action="/chat" class="ai-studio-form">
+        <textarea
+          id="ai-studio-input"
+          name="question"
+          class="ai-studio-input"
+          placeholder="Ornek: Psikolojik gerilim + gizem + ters kose final isteyen filmler oner. Her biri icin benzer yapimlar da yaz."
+          required
+        ></textarea>
+        <div class="ai-studio-actions">
+          <button type="button" id="ai-clear-btn" class="btn btn-secondary">Temizle</button>
+          <button type="submit" class="btn btn-primary">AI Oneri Uret</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

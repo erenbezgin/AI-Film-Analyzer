@@ -1,5 +1,6 @@
 flask
-flask-mysql
+mysql-connector-python
 google-generativeai
 requests
 python-dotenv
+flask-cors

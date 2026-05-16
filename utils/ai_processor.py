@@ -1,10 +1,14 @@
-import os
-from google import genai
 from utils.db_manager import get_db_connection
 from dotenv import load_dotenv
+from utils.ai_engine import generate_gemini_text
 
 # .env dosyasındaki API anahtarlarını yükle
 load_dotenv()
+
+
+def _safe_log(msg):
+    """Konsola emoji dahil yazarken codec hatalarina karsi."""
+    print(msg.encode("ascii", errors="replace").decode("ascii"))
 
 
 def analyze_advanced_insight():
@@ -14,21 +18,16 @@ def analyze_advanced_insight():
     """
     conn = get_db_connection()
     if not conn:
-        print("❌ Veritabanı bağlantısı kurulamadı.")
+        _safe_log("[error] Veritabanina baglanilamadi.")
         return
 
     cursor = conn.cursor(dictionary=True)
 
-    # 1. Analiz edilmemiş filmi, tür bilgisiyle birlikte çek
-    # Veritabanı dökümanındaki ilişkisel yapıya sadık kalınmıştır.
+    # genres artık movies.genre sütununda tutuluyor
     query = """
-        SELECT m.id, m.title, m.overview, 
-               GROUP_CONCAT(DISTINCT g.genre_name) as genres
+        SELECT m.id, m.title, m.overview, m.genre as genres
         FROM movies m
-        LEFT JOIN movie_genre_map mgm ON m.id = mgm.movie_id
-        LEFT JOIN genres g ON mgm.genre_id = g.id
         WHERE m.id NOT IN (SELECT movie_id FROM ai_insights)
-        GROUP BY m.id
         LIMIT 1
     """
 
@@ -37,11 +36,8 @@ def analyze_advanced_insight():
         movie = cursor.fetchone()
 
         if not movie:
-            print("ℹ️ Analiz edilecek yeni kayıt bulunamadı.")
+            _safe_log("[info] Analiz icin yeni film kaydi bulunamadi.")
             return
-
-        # 2. Gemini 2.5 API Yapılandırması (Profesyonel Mod)
-        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
         # Tamamen nesnel, teknik ve kurumsal bir prompt yapısı
         prompt = f"""
@@ -60,10 +56,10 @@ def analyze_advanced_insight():
         YORUM: [İçeriğin yapısını ve temasını inceleyen 2-3 cümlelik profesyonel analiz]
         """
 
-        response = client.models.generate_content(
-            model="gemini-2.5-flash", contents=prompt
-        )
-        raw_text = response.text
+        raw_text = generate_gemini_text(prompt)
+        if raw_text.startswith("Hata:"):
+            _safe_log(f"[error] Gemini bos veya hatali cevap: {raw_text}")
+            return
 
         # Veri ayrıştırma (Parsing)
         if "ETİKET:" in raw_text and "YORUM:" in raw_text:
@@ -77,12 +73,12 @@ def analyze_advanced_insight():
             """
             cursor.execute(insert_query, (movie["id"], tag, commentary))
             conn.commit()
-            print(f"✅ Analiz Başarılı: {movie['title']}")
+            _safe_log(f"[ok] Analiz basariyla kaydedildi: {movie['title']}")
         else:
-            print("⚠️ API yanıt formatı beklenen yapıda değil.")
+            _safe_log("[warn] API yanit formati beklenen yapida degil.")
 
     except Exception as e:
-        print(f"❌ Sistem Hatası: {e}")
+        _safe_log(f"[error] Analiz hatasi: {e}")
     finally:
         cursor.close()
         conn.close()

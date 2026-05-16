@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}{{ actor.name }} - AI Film Analyzer{% endblock %}
+
+{% block content %}
+<div style="padding: 0 4%; margin-top: 40px;">
+    <!-- ACTOR HEADER -->
+    <div class="glass-panel" style="display: flex; gap: 40px; padding: 40px; margin-bottom: 50px; align-items: center; flex-wrap: wrap;">
+        <div style="flex-shrink: 0; width: 220px; height: 330px; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.8); border: 2px solid rgba(255,255,255,0.1);">
+            {% if actor.profile_path %}
+                <img src="https://image.tmdb.org/t/p/w500{{ actor.profile_path }}" alt="{{ actor.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+            {% else %}
+                <div style="width: 100%; height: 100%; background: #222; display: flex; align-items: center; justify-content: center; color: #555;">Resim Yok</div>
+            {% endif %}
+        </div>
+        <div style="flex-grow: 1;">
+            <h1 style="font-size: 3.5rem; font-weight: 800; color: #fff; text-shadow: 0 0 20px rgba(0, 225, 255, 0.4); margin-bottom: 15px;">{{ actor.name }}</h1>
+            
+        </div>
+    </div>
+
+    <!-- MOVIES GRID -->
+    <div class="carousel-section">
+        <div class="carousel-title" style="margin-bottom: 30px; font-size: 1.8rem;">Oynadığı Filmler</div>
+        {% if movies %}
+        <div class="carousel-container films-grid" style="padding-bottom: 50px;">
+            {% for movie in movies %}
+            <div class="film-card">
+                <div class="film-poster">
+                    {% if movie.poster_path %}
+                    <a href="/movie/{{ movie.id }}">
+                        <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" alt="{{ movie.title }}" />
+                    </a>
+                    {% else %}
+                    <a href="/movie/{{ movie.id }}" style="text-decoration: none;">
+                        <div style="width: 100%; height: 100%; background: #222; display: flex; align-items: center; justify-content: center; font-size: 2rem;">🎬</div>
+                    </a>
+                    {% endif %}
+                    
+                    <div class="film-overlay">
+                        <div class="film-overlay-buttons">
+                            <a href="/movie/{{ movie.id }}" class="btn btn-secondary btn-small" style="width: 100%; padding: 5px; display: block; text-align: center;">ℹ️ Detay</a>
+                            <form method="POST" action="/add-to-watchlist/{{ movie.id }}" style="margin-top: 5px;">
+                                <button type="submit" class="btn btn-primary btn-small" style="width: 100%; padding: 5px;">➕ Ekle</button>
+                            </form>
+                            <button class="btn btn-ai btn-small btn-analysis" data-movie-id="{{ movie.id }}" data-movie-title="{{ movie.title }}" style="width: 100%; padding: 5px; margin-top: 5px;">🤖 AI Analiz</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="film-info">
+                    <div class="film-title">{{ movie.title }}</div>
+                    <div class="film-meta">
+                        <span class="film-rating">{{ movie.vote_average|round(1) }} Puan</span>
+                        {% if movie.release_date %}
+                        <span>{{ movie.release_date.year if movie.release_date else '' }}</span>
+                        {% endif %}
+                    </div>
+                    {% if movie.character_name %}
+                    <div style="font-size: 0.85rem; color: #888; margin-top: 5px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">Rol: <span style="color: #ccc;">{{ movie.character_name }}</span></div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-info glass-panel" style="margin-bottom: 50px;">
+            ℹ️ Bu oyuncunun oynadığı herhangi bir film bulunamadı.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

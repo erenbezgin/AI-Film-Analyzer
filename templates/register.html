@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Kayıt Ol - AI Film Analyzer{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+  <h2>Kayıt Ol</h2>
+  <form method="POST" action="/register">
+    <div>
+      <input type="text" name="username" class="form-control" placeholder="Kullanıcı Adı" required>
+    </div>
+    <div>
+      <input type="email" name="email" class="form-control" placeholder="E-posta" required>
+    </div>
+    <div>
+      <input type="password" name="password" class="form-control" placeholder="Şifre (En az 6 karakter)" required>
+    </div>
+    <div>
+      <input type="password" name="password_confirm" class="form-control" placeholder="Şifre Tekrar" required>
+    </div>
+    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 24px; padding: 16px;">Kayıt Ol</button>
+  </form>
+  
+  <div style="margin-top: 30px; color: var(--text-secondary); display: flex; align-items: center; justify-content: space-between;">
+    <span>Zaten bir hesabınız var mı?</span>
+    <a href="/login" style="color: #fff; font-weight: 500; text-decoration: none;">Oturum Açın.</a>
+  </div>
+</div>
+{% endblock %}
