@@ -19,6 +19,7 @@ _next_retry_ts = 0.0
 
 
 def _extract_text(resp):
+    # gemini'nin farklı yanıt formatlarını güvenli şekilde işleyerek düz metin çıkarır
     """google-generativeai farklı yanıt tiplerinde .text'i bazen üretmez; güvenli çöz."""
     if not resp:
         return ""
@@ -43,6 +44,7 @@ def _extract_text(resp):
 
 
 def generate_gemini_text(prompt: str) -> str:
+    #diğer tüm yapay zeka fonksiyonları bu temel metin üretim fonksiyonunu kullanır
     """Gemini'den düz metin üret (boş veya hata durumunda anlamlı mesaj)."""
     global _next_retry_ts
     if not api_key:
@@ -76,24 +78,28 @@ def generate_gemini_text(prompt: str) -> str:
 
 
 def get_ai_movie_analysis(movie_title):
+    #dışarıdan verilen film başlığına göre yapay zekadan analiz alır
     """Film hakkında derinlemesine analiz yapar."""
     prompt = f"Bana '{movie_title}' filminin temasını, neden izlenmesi gerektiğini ve varsa gizli detaylarını 3 kısa cümleyle anlat."
     return generate_gemini_text(prompt)
 
 
 def get_ai_recommendation(user_input):
+    #kullanıcının doğal dildeki isteğine göre yapay zekadan film önerisi alır
     """Kullanıcının doğal dil isteğine göre film önerir."""
     prompt = f"Kullanıcı diyor ki: '{user_input}'. Bu isteğe göre en iyi 3 film önerisini kısa gerekçeleriyle yaz."
     return generate_gemini_text(prompt)
 
 
 def get_ai_chat_response(question):
+    #kullanıcının yapay zeka ile sohbet edebileceği basit chat bot fonksiyonu
     """AI ile sohbet: Kullanıcının sorularına yanıt verir."""
     prompt = f"Kullanıcı: {question}\n\nYanıt (profesyonel ve kısa):"
     return generate_gemini_text(prompt)
 
 
 def get_quota_status():
+    #admin paneli için yapay zeka kota durumunu kontrol eder ve uygun mesajı döndürür
     """Basit bir AI kota durumu kontrolü döndürür.
 
     Dönüş formatı: { 'level': 'green'|'yellow'|'red', 'label': 'Metin', 'detail': 'Açıklama' }

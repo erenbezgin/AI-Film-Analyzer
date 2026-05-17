@@ -12,6 +12,7 @@ from utils.db_functions import (
 from utils.helpers import fetch_genre_sections, get_ai_related_movies
 from utils.ai_engine import get_ai_chat_response, generate_gemini_text
 from utils.decorators import login_required
+from utils.constants import BLOCKED_GENRES, blocked_genre_sql
 
 main_bp = Blueprint('main', __name__)
 
@@ -55,10 +56,11 @@ def dashboard():
             continue_watching = []
 
         try:
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT m.id, m.title, m.vote_average, m.poster_path, m.release_date, COUNT(r.id) AS review_hits
                 FROM reviews r
                 JOIN movies m ON r.movie_id = m.id
+                WHERE {blocked_genre_sql('m')}
                 GROUP BY m.id, m.title, m.vote_average, m.poster_path, m.release_date
                 ORDER BY review_hits DESC, m.vote_average DESC
                 LIMIT 10
@@ -68,10 +70,11 @@ def dashboard():
             top_10_week = []
 
         try:
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT m.id, m.title, m.vote_average, m.poster_path, m.release_date, COUNT(wl.movie_id) AS trend_score
                 FROM watch_list wl
                 JOIN movies m ON wl.movie_id = m.id
+                WHERE {blocked_genre_sql('m')}
                 GROUP BY m.id, m.title, m.vote_average, m.poster_path, m.release_date
                 ORDER BY trend_score DESC, m.vote_average DESC
                 LIMIT 12
@@ -81,22 +84,24 @@ def dashboard():
             trending_now = []
 
         if not recommended:
-            cursor.execute("SELECT * FROM movies ORDER BY vote_average DESC LIMIT 15")
+            cursor.execute(f"SELECT * FROM movies WHERE {blocked_genre_sql()} ORDER BY vote_average DESC LIMIT 15")
             recommended = cursor.fetchall()
 
         if not top_10_week:
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT id, title, vote_average, poster_path, release_date
                 FROM movies
+                WHERE {blocked_genre_sql()}
                 ORDER BY vote_average DESC
                 LIMIT 10
                 """)
             top_10_week = cursor.fetchall()
 
         if not trending_now:
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT id, title, vote_average, poster_path, release_date
                 FROM movies
+                WHERE {blocked_genre_sql()}
                 ORDER BY vote_average DESC
                 LIMIT 12
                 """)
@@ -160,11 +165,17 @@ def genre_page(genre_name):
         cursor = conn.cursor(dictionary=True)
         normalized_name = genre_name.replace("-", " ").strip()
 
+        # Engellenen türe doğrudan erişim engeli
+        if normalized_name.lower() in [b.lower() for b in BLOCKED_GENRES]:
+            flash("⚠️ Bu tür platformda gösterilmemektedir.", "warning")
+            return redirect(url_for("main.dashboard"))
+
         like_val = f"%{normalized_name.lower()}%"
         cursor.execute(
-            """
+            f"""
             SELECT * FROM movies m
             WHERE LOWER(m.genre) LIKE %s
+            AND {blocked_genre_sql('m')}
             ORDER BY m.vote_average DESC
             """,
             (like_val,),
@@ -173,9 +184,10 @@ def genre_page(genre_name):
 
         if not movies and normalized_name.lower() in ("bilimkurgu", "bilim kurgu"):
             cursor.execute(
-                """
+                f"""
                 SELECT * FROM movies m
-                WHERE LOWER(m.genre) LIKE %s OR LOWER(m.genre) LIKE %s OR LOWER(m.genre) LIKE %s
+                WHERE (LOWER(m.genre) LIKE %s OR LOWER(m.genre) LIKE %s OR LOWER(m.genre) LIKE %s)
+                AND {blocked_genre_sql('m')}
                 ORDER BY m.vote_average DESC
                 """,
                 ("%bilim kurgu%", "%science fiction%", "%sci-fi%"),
@@ -215,20 +227,27 @@ def genre_page_by_id(genre_id):
 
         g_name = genre["genre_name"]
 
+        # Engellenen türe ID ile erişim engeli
+        if g_name.lower() in [b.lower() for b in BLOCKED_GENRES]:
+            flash("⚠️ Bu tür platformda gösterilmemektedir.", "warning")
+            return redirect(url_for("main.dashboard"))
+
         if g_name.lower() in ("bilimkurgu", "bilim kurgu", "bilim-kurgu"):
             cursor.execute(
-                """
+                f"""
                 SELECT * FROM movies 
-                WHERE LOWER(genre) LIKE %s OR LOWER(genre) LIKE %s OR LOWER(genre) LIKE %s
+                WHERE (LOWER(genre) LIKE %s OR LOWER(genre) LIKE %s OR LOWER(genre) LIKE %s)
+                AND {blocked_genre_sql()}
                 ORDER BY vote_average DESC
                 """,
                 ("%bilim kurgu%", "%science fiction%", "%sci-fi%"),
             )
         else:
             cursor.execute(
-                """
+                f"""
                 SELECT * FROM movies 
-                WHERE genre LIKE %s 
+                WHERE genre LIKE %s
+                AND {blocked_genre_sql()}
                 ORDER BY vote_average DESC
             """,
                 (f"%{g_name}%",),
@@ -344,7 +363,7 @@ def search():
         
     cursor = conn.cursor(dictionary=True)
     
-    sql = "SELECT id, title, vote_average, poster_path, release_date FROM movies WHERE 1=1"
+    sql = f"SELECT id, title, vote_average, poster_path, release_date FROM movies WHERE 1=1 AND {blocked_genre_sql()}"
     params = []
     
     if query:

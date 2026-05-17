@@ -1,5 +1,6 @@
 from utils.db_manager import get_db_connection
 import hashlib
+from utils.constants import BLOCKED_GENRES, blocked_genre_sql
 
 
 def search_movies(title=None, genre=None, min_rating=None, year=None):
@@ -14,10 +15,11 @@ def search_movies(title=None, genre=None, min_rating=None, year=None):
     cursor = conn.cursor(dictionary=True)
 
     # Basit yapı: tür bilgisi artık movies.genre sütununda tutuluyor
-    query = """
+    query = f"""
         SELECT m.*, m.genre AS genres
         FROM movies m
         WHERE 1=1
+        AND {blocked_genre_sql('m')}
     """
     params = []
 
@@ -178,6 +180,13 @@ def get_recommendations(user_id):
         if not genre_scores:
             return []
 
+        # Engellenen türleri öneri listesinden çıkar
+        for blocked in BLOCKED_GENRES:
+            genre_scores.pop(blocked, None)
+
+        if not genre_scores:
+            return []
+
         sorted_genres = sorted(genre_scores.items(), key=lambda x: x[1], reverse=True)
         top_genres = [g for g, _ in sorted_genres[:3]]
 
@@ -190,6 +199,7 @@ def get_recommendations(user_id):
             SELECT m.id, m.title, m.vote_average, m.poster_path
             FROM movies m
             WHERE ({like_clauses})
+            AND {blocked_genre_sql('m')}
             AND m.id NOT IN (SELECT movie_id FROM watch_list WHERE user_id = %s)
             AND m.id NOT IN (SELECT movie_id FROM reviews WHERE user_id = %s)
             ORDER BY m.vote_average DESC

@@ -1,20 +1,26 @@
 from utils.db_manager import get_db_connection
+from utils.constants import BLOCKED_GENRES, blocked_genre_sql
 
 def fetch_genre_sections(cursor, genre_limit=8, movie_limit=12):
-    """Tür isimlerini genres tablosundan alıp, filmleri movies tablosunda LIKE ile hızlıca arar."""
-    # Menü için referans tablosundan türleri çekiyoruz
+    """Tür isimlerini genres tablosundan alıp, filmleri movies tablosunda LIKE ile hızlıca arar.
+    Engellenen türler (BLOCKED_GENRES) hem menüden hem film listesinden filtrelenir.
+    """
     cursor.execute("SELECT id, genre_name FROM genres LIMIT %s", (genre_limit,))
     genres = cursor.fetchall()
 
     genre_sections = []
     for g in genres:
         g_name = g["genre_name"]
-        # JOIN kullanmadan, direkt yeni genre sütununda arama yapıyoruz
+
+        # Engellenen türleri menüden tamamen kaldır
+        if g_name.lower() in [b.lower() for b in BLOCKED_GENRES]:
+            continue
+
         cursor.execute(
-            """
+            f"""
             SELECT id, title, vote_average, poster_path, release_date
-            FROM movies 
-            WHERE genre LIKE %s 
+            FROM movies
+            WHERE genre LIKE %s AND {blocked_genre_sql()}
             ORDER BY vote_average DESC LIMIT %s
         """,
             (f"%{g_name}%", movie_limit),
@@ -35,7 +41,7 @@ def get_ai_related_movies(user_question, limit=8):
         "komedi": ["komedi", "comedy"],
         "dram": ["dram", "drama"],
         "korku": ["korku", "horror"],
-        "romantik": ["romantik", "romance"],
+        # "romantik" kaldırıldı — engellenen tür (BLOCKED_GENRES)
         "animasyon": ["animasyon", "animation"],
         "macera": ["macera", "adventure"],
         "gerilim": ["gerilim", "thriller"],
@@ -64,7 +70,7 @@ def get_ai_related_movies(user_question, limit=8):
             query = f"""
                 SELECT id, title, vote_average, release_date, poster_path
                 FROM movies
-                WHERE {like_conditions}
+                WHERE ({like_conditions}) AND {blocked_genre_sql()}
                 ORDER BY vote_average DESC
                 LIMIT %s
             """
@@ -76,10 +82,10 @@ def get_ai_related_movies(user_question, limit=8):
                 return movies
 
         cursor.execute(
-            """
+            f"""
             SELECT id, title, vote_average, release_date, poster_path
             FROM movies
-            WHERE title LIKE %s
+            WHERE title LIKE %s AND {blocked_genre_sql()}
             ORDER BY vote_average DESC
             LIMIT %s
             """,
@@ -90,9 +96,10 @@ def get_ai_related_movies(user_question, limit=8):
             return movies
 
         cursor.execute(
-            """
+            f"""
             SELECT id, title, vote_average, release_date, poster_path
             FROM movies
+            WHERE {blocked_genre_sql()}
             ORDER BY vote_average DESC
             LIMIT %s
             """,
