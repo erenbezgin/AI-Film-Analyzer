@@ -34,6 +34,9 @@
           <div class="film-overlay-buttons">
             <a href="/movie/{{ movie.id }}" class="btn btn-secondary btn-small" style="width:100%; padding:8px; display:block; text-align:center;">ℹ️ Detaylar</a>
             <button class="btn btn-ai btn-small btn-analysis" data-movie-id="{{ movie.id }}" data-movie-title="{{ movie.title }}" style="width:100%; padding:8px; margin-top:5px;">🤖 Analiz</button>
+            <form action="/remove-from-watchlist/{{ movie.id }}" method="POST" style="margin: 0; width: 100%;">
+              <button type="submit" class="btn btn-secondary btn-small" style="width:100%; padding:8px; margin-top:5px; background: rgba(220, 53, 69, 0.2); border: 1px solid rgba(220, 53, 69, 0.6); color: #ffb3b8; transition: all 0.3s;" onmouseover="this.style.background='rgba(220, 53, 69, 0.4)'; this.style.borderColor='rgba(220, 53, 69, 0.9)'; this.style.color='#fff';" onmouseout="this.style.background='rgba(220, 53, 69, 0.2)'; this.style.borderColor='rgba(220, 53, 69, 0.6)'; this.style.color='#ffb3b8';">❌ Kaldır</button>
+            </form>
           </div>
         </div>
       </div>

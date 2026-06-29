@@ -4,7 +4,6 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from utils.db_manager import get_db_connection
 from utils.db_functions import get_users_list, save_movie_to_db, update_movie_genres
 from utils.ai_engine import get_quota_status
-from utils.ai_processor import analyze_advanced_insight
 from utils.decorators import admin_required
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -42,18 +41,6 @@ def dashboard():
             """)
         recent_added_movies = cursor.fetchall()
 
-        pending_analysis_count = 0
-        try:
-            cursor.execute("""
-                SELECT COUNT(*) AS count
-                FROM movies m
-                LEFT JOIN ai_insights ai ON ai.movie_id = m.id
-                WHERE ai.movie_id IS NULL OR ai.ai_commentary IS NULL OR ai.ai_commentary = ''
-                """)
-            pending_analysis_count = cursor.fetchone()["count"]
-        except Exception:
-            pending_analysis_count = 0
-
         cursor.execute("""
             SELECT r.id, u.username, m.title AS movie_title, r.rating, r.comment, r.created_at
             FROM reviews r
@@ -77,7 +64,6 @@ def dashboard():
             users=users_list or [],
             recent_reviews=recent_reviews or [],
             recent_added_movies=recent_added_movies or [],
-            pending_analysis_count=pending_analysis_count,
             problematic_reviews=problematic_reviews or [],
             ai_quota_status=get_quota_status(),
         )
@@ -254,6 +240,14 @@ def admin_delete_movie():
             cursor.execute("DELETE FROM movie_genre_map WHERE movie_id = %s", (movie_id,))
         except Exception:
             pass
+        try:
+            cursor.execute("DELETE FROM api_raw_data WHERE movie_id = %s", (movie_id,))
+        except Exception:
+            pass
+        try:
+            cursor.execute("DELETE FROM ai_insights WHERE movie_id = %s", (movie_id,))
+        except Exception:
+            pass
         cursor.execute("DELETE FROM movie_cast WHERE movie_id = %s", (movie_id,))
         cursor.execute("DELETE FROM watch_list WHERE movie_id = %s", (movie_id,))
         cursor.execute("DELETE FROM reviews WHERE movie_id = %s", (movie_id,))
@@ -274,19 +268,3 @@ def admin_delete_movie():
         flash(f"Silme işlemi sırasında hata: {str(e)}", "danger")
 
     return redirect(url_for("admin.dashboard"))
-
-
-@admin_bp.route("/analyze", methods=["GET", "POST"])
-@admin_required
-def admin_analyze():
-    """Admin - Gemini ile film analizi"""
-    if request.method == "POST":
-        try:
-            analyze_advanced_insight()
-            flash("✅ Film analizi tamamlandı!", "success")
-        except Exception as e:
-            flash(f"❌ Analiz Hatası: {str(e)}", "danger")
-
-        return redirect(url_for("admin.dashboard"))
-
-    return render_template("admin_analyze.html", username=session["username"])

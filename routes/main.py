@@ -4,6 +4,7 @@ from utils.db_manager import get_db_connection
 from utils.db_functions import (
     get_recommendations,
     add_to_watch_list,
+    remove_from_watch_list,
     get_watch_list,
     get_movie_cast,
     get_actor_info_and_movies,
@@ -408,6 +409,21 @@ def add_watchlist(movie_id):
     return redirect(request.referrer or url_for("main.dashboard"))
 
 
+@main_bp.route("/remove-from-watchlist/<int:movie_id>", methods=["POST"])
+@login_required
+def remove_watchlist(movie_id):
+    try:
+        result = remove_from_watch_list(session["user_id"], movie_id)
+        if result:
+            flash("✅ Film izleme listenizden çıkarıldı!", "success")
+        else:
+            flash("⚠️ Film zaten izleme listenizde değil!", "info")
+    except Exception as e:
+        flash(f"❌ Hata: {str(e)}", "danger")
+
+    return redirect(request.referrer or url_for("main.profile"))
+
+
 @main_bp.route("/chat", methods=["GET", "POST"])
 @login_required
 def chat():
@@ -422,8 +438,71 @@ def chat():
             flash("❌ Lütfen bir soru sorunuz!", "danger")
         else:
             try:
-                response = get_ai_chat_response(user_question)
-                related_movies = get_ai_related_movies(user_question, limit=8)
+                raw_response = get_ai_chat_response(user_question)
+                
+                # [FILMLER: ...] etiketini parse et
+                import re
+                match = re.search(r"\[FILMLER:\s*(.*?)\]", raw_response, re.IGNORECASE)
+                recommended_titles = []
+                if match:
+                    titles_str = match.group(1)
+                    raw_response = re.sub(r"\[FILMLER:\s*(.*?)\]", "", raw_response, flags=re.IGNORECASE).strip()
+                    recommended_titles = [t.strip() for t in titles_str.split(",") if t.strip()]
+                
+                response = raw_response
+                related_movies = []
+                
+                # Veritabanında filmleri ara
+                conn = get_db_connection()
+                cursor = conn.cursor(dictionary=True)
+                
+                used_movie_ids = set()
+                
+                try:
+                    for title_item in recommended_titles:
+                        # Film ismini '/', parantez ve tireye göre bölerek Türkçe/İngilizce varyasyonlarını temizle
+                        raw_names = re.split(r"[/()\-]", title_item)
+                        names = [n.strip() for n in raw_names if len(n.strip()) > 1]
+                        
+                        if names:
+                            movie = None
+                            
+                            # Aşamalı Arama 1: Birebir (Exact) Eşleşme Kontrolü (Öncelikli)
+                            placeholders_exact = " OR ".join(["LOWER(title) = %s" for _ in names])
+                            params_exact = tuple(n.lower() for n in names)
+                            
+                            cursor.execute(
+                                f"SELECT id, title, vote_average, release_date, poster_path, genre FROM movies WHERE ({placeholders_exact}) AND {blocked_genre_sql()} LIMIT 1",
+                                params_exact
+                            )
+                            movie = cursor.fetchone()
+                            
+                            # Aşamalı Arama 2: Birebir bulunamadıysa Kısmi (LIKE) Eşleşme Kontrolü
+                            if not movie:
+                                placeholders_like = " OR ".join(["LOWER(title) LIKE %s" for _ in names])
+                                params_like = tuple(f"%{n.lower()}%" for n in names)
+                                
+                                cursor.execute(
+                                    f"SELECT id, title, vote_average, release_date, poster_path, genre FROM movies WHERE ({placeholders_like}) AND {blocked_genre_sql()} LIMIT 1",
+                                    params_like
+                                )
+                                movie = cursor.fetchone()
+                            
+                            if movie:
+                                if movie["id"] not in used_movie_ids:
+                                    related_movies.append(movie)
+                                    used_movie_ids.add(movie["id"])
+                            # Eğer veritabanında yoksa hiçbir şey eklemiyoruz (başka bir film göstermiyoruz)
+                except Exception as db_err:
+                    print(f"Sohbet öneri veritabanı hatası: {db_err}")
+                finally:
+                    cursor.close()
+                    conn.close()
+                
+                # Sadece etiket hiç bulunamadıysa (parse edilemediyse) yedek keyword aramasını çalıştır
+                if not recommended_titles and not related_movies:
+                    related_movies = get_ai_related_movies(user_question, limit=8)
+                
                 if response and response.strip().lower().startswith(
                     "hata: ai kotasi dolu"
                 ):
@@ -457,60 +536,44 @@ def analyze_film(movie_id):
             return jsonify({"error": "Veritabanı bağlantısı başarısız"}), 500
 
         cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT title, overview FROM movies WHERE id = %s", (movie_id,)
+        )
+        movie_info = cursor.fetchone()
 
-        result = None
-        try:
-            query = "SELECT analysis_tag, ai_commentary FROM ai_insights WHERE movie_id = %s"
-            cursor.execute(query, (movie_id,))
-            result = cursor.fetchone()
-        except Exception:
-            pass
+        cursor.close()
+        conn.close()
 
-        if result:
-            cursor.close()
-            conn.close()
-            return jsonify(
-                {"tag": result["analysis_tag"], "analysis": result["ai_commentary"]}
+        if not movie_info:
+            return jsonify({"error": "Film bulunamadı."}), 404
+
+        title = movie_info.get("title", "")
+        overview = movie_info.get("overview", "")
+
+        prompt = f"'{title}' adlı film hakkında kısaca profesyonel bir sinema eleştirisi yap. Filmin özeti: {overview}. Lütfen cevabını 2-3 cümle ile sınırla."
+        response = generate_gemini_text(prompt)
+
+        if response and response.strip().lower().startswith("hata: ai kotasi dolu"):
+            snippet = (overview or "").strip()
+            if len(snippet) > 420:
+                snippet = snippet[:420].rstrip() + "..."
+            fallback_analysis = (
+                "AI kotasi gecici olarak dolu. Bu sirada filmin ozetinden hizli bir degerlendirme:\n\n"
+                f"{snippet if snippet else 'Film ozeti mevcut degil.'}"
             )
-        else:
-            cursor.execute(
-                "SELECT title, overview FROM movies WHERE id = %s", (movie_id,)
+            return jsonify({"tag": "Gecici Ozet", "analysis": fallback_analysis})
+
+        if not response or response.strip().lower().startswith("hata:"):
+            return (
+                jsonify(
+                    {
+                        "error": response
+                        or "AI analizi şu an kullanılamıyor, lütfen daha sonra tekrar deneyin."
+                    }
+                ),
+                500,
             )
-            movie_info = cursor.fetchone()
 
-            cursor.close()
-            conn.close()
-
-            if not movie_info:
-                return jsonify({"error": "Film bulunamadı."}), 404
-
-            title = movie_info.get("title", "")
-            overview = movie_info.get("overview", "")
-
-            prompt = f"'{title}' adlı film hakkında kısaca profesyonel bir sinema eleştirisi yap. Filmin özeti: {overview}. Lütfen cevabını 2-3 cümle ile sınırla."
-            response = generate_gemini_text(prompt)
-
-            if response and response.strip().lower().startswith("hata: ai kotasi dolu"):
-                snippet = (overview or "").strip()
-                if len(snippet) > 420:
-                    snippet = snippet[:420].rstrip() + "..."
-                fallback_analysis = (
-                    "AI kotasi gecici olarak dolu. Bu sirada filmin ozetinden hizli bir degerlendirme:\n\n"
-                    f"{snippet if snippet else 'Film ozeti mevcut degil.'}"
-                )
-                return jsonify({"tag": "Gecici Ozet", "analysis": fallback_analysis})
-
-            if not response or response.strip().lower().startswith("hata:"):
-                return (
-                    jsonify(
-                        {
-                            "error": response
-                            or "AI analizi şu an kullanılamıyor, lütfen daha sonra tekrar deneyin."
-                        }
-                    ),
-                    500,
-                )
-
-            return jsonify({"tag": "Hızlı Analiz", "analysis": response})
+        return jsonify({"tag": "Hızlı Analiz", "analysis": response})
     except Exception as e:
         return jsonify({"error": f"Analiz hatası: {str(e)}"}), 500

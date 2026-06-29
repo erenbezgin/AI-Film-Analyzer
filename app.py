@@ -66,6 +66,12 @@ def index():
     return redirect(url_for("auth.login"))
 
 
+@app.route("/hata-test")
+def hata_test():
+    """Kasıtlı 500 Hatası Oluşturma Rotası"""
+    return render_template("500.html"), 500
+
+
 @app.errorhandler(404)
 def page_not_found(error):
     """404 Hatası"""

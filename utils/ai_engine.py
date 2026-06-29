@@ -93,8 +93,17 @@ def get_ai_recommendation(user_input):
 
 def get_ai_chat_response(question):
     #kullanıcının yapay zeka ile sohbet edebileceği basit chat bot fonksiyonu
-    """AI ile sohbet: Kullanıcının sorularına yanıt verir."""
-    prompt = f"Kullanıcı: {question}\n\nYanıt (profesyonel ve kısa):"
+    """AI ile sohbet: Kullanıcının sorularına yanıt verir ve önerdiği filmleri Türkçe/İngilizce etiketler."""
+    prompt = (
+        f"Sen sinema konusunda uzmanlaşmış, zeki bir AI Film Asistanısın.\n"
+        f"Kullanıcının sorusu: '{question}'\n\n"
+        f"Lütfen bu soruya Türkçe, samimi ve profesyonel bir dille yanıt ver. "
+        f"Önerdiğin filmler varsa, her birini kalın harflerle belirt (örneğin **Inception**). "
+        f"En önemlisi, önerdiğin tüm filmlerin Türkçe ve İngilizce/Orijinal başlıklarını yanıtının en sonuna "
+        f"tam olarak şu formatta ekle: [FILMLER: Türkçe İsim / İngilizce İsim, Türkçe İsim / İngilizce İsim]\n"
+        f"Örnek: [FILMLER: Başlangıç / Inception, Matrix / The Matrix, Yıldızlararası / Interstellar]\n"
+        f"Bu etiket kullanıcıya gösterilmeyecek, arka planda işlenecektir. Yanıtının sonuna mutlaka eklemelisin."
+    )
     return generate_gemini_text(prompt)
 
 

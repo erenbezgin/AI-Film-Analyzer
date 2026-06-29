@@ -119,10 +119,10 @@ def update_movie_genres(movie_id, genre_ids):
 
 
 def add_to_watch_list(user_id, movie_id):
-    """Kullanıcının listesine film ekler."""
+    """Kullanıcının listesine film ekler. Başarıyla eklendiyse True, zaten varsa False döner."""
     conn = get_db_connection()
     if not conn:
-        return
+        return False
     cursor = conn.cursor()
     try:
         cursor.execute(
@@ -130,14 +130,38 @@ def add_to_watch_list(user_id, movie_id):
             (user_id, movie_id),
         )
         conn.commit()
-        print(f"✅ Film listeye eklendi!")
+        inserted = cursor.rowcount > 0
+        if inserted:
+            print(f"✅ Film listeye eklendi!")
+        return inserted
     except Exception as e:
         print(f"❌ Liste hatası: {e}")
+        return False
     finally:
         cursor.close()
         conn.close()
-
-
+def remove_from_watch_list(user_id, movie_id):
+    """Kullanıcının listesinden filmi çıkarır. Başarıyla çıkarıldıysa True, hata durumunda False döner."""
+    conn = get_db_connection()
+    if not conn:
+        return False
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "DELETE FROM watch_list WHERE user_id = %s AND movie_id = %s",
+            (user_id, movie_id),
+        )
+        conn.commit()
+        removed = cursor.rowcount > 0
+        if removed:
+            print(f"✅ Film listeden çıkarıldı!")
+        return removed
+    except Exception as e:
+        print(f"❌ Liste çıkarma hatası: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
 def get_recommendations(user_id):
     """İzleme listesi ve olumlu değerlendirmelere göre tür tercihlerinden film önerir."""
     conn = get_db_connection()

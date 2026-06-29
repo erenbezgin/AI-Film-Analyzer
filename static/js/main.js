@@ -17,6 +17,24 @@ function initializeApp() {
     setupAnalysisButtons();
     setupCarousel();
     setupFormValidation();
+    
+    // Format existing AI messages on page load
+    document.querySelectorAll('.message.ai').forEach(elem => {
+        if (elem.children.length === 0) {
+            elem.innerHTML = formatMarkdown(elem.textContent.trim());
+        }
+    });
+}
+
+// Markdown to HTML simple parser
+function formatMarkdown(text) {
+    if (!text) return '';
+    let html = text.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/^\*\s(.*)$/gm, '• $1');
+    html = html.replace(/^-\s(.*)$/gm, '• $1');
+    html = html.replace(/\n/g, '<br>');
+    return html;
 }
 
 // ============================================
@@ -120,7 +138,7 @@ function setupAiStudio() {
         })
         .then(response => response.json())
         .then(data => {
-            loadingMsg.textContent = data.response || 'Uygun bir cevap olusturulamadi. Lutfen yeniden dene.';
+            loadingMsg.innerHTML = formatMarkdown(data.response || 'Uygun bir cevap olusturulamadi. Lutfen yeniden dene.');
             if (Array.isArray(data.movies) && data.movies.length > 0) {
                 const moviesWrap = document.createElement('div');
                 moviesWrap.className = 'ai-movie-results';
@@ -231,7 +249,7 @@ function sendChatMessage() {
     .then(data => {
         const aiMsg = document.createElement('div');
         aiMsg.className = 'message ai';
-        aiMsg.textContent = data.response || 'Üzgünüm, bir hata oluştu.';
+        aiMsg.innerHTML = formatMarkdown(data.response || 'Üzgünüm, bir hata oluştu.');
         chatMessages.appendChild(aiMsg);
 
         // Scroll to bottom
